@@ -1,7 +1,5 @@
 import enum
-
-from sqlalchemy import Column, Integer, String, Enum
-
+from sqlalchemy import Column, Integer, String, Enum, Boolean
 from app.database import Base
 
 
@@ -13,8 +11,8 @@ class UserRole(str, enum.Enum):
 
 class User(Base):
     __tablename__ = "users"
-
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, nullable=False, index=True)
     hashed_password = Column(String, nullable=False)
     role = Column(Enum(UserRole), default=UserRole.staff, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)  # deactivate instead of delete, so order history keeps its "server" name

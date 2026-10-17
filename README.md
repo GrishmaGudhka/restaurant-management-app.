@@ -1,17 +1,33 @@
-# Restaurant Management System
+# The Corner Table: Restaurant Management System
 
-Full-stack restaurant management app — FastAPI backend + React (Vite) frontend.
+Full-stack restaurant back-of-house app. FastAPI + SQLAlchemy backend, React (Vite) frontend.
 
-## Features
-- **Auth**: register/login with JWT, role-based access (admin / staff / kitchen)
-- **Menu**: CRUD for menu items (admin only for create/update/delete)
-- **Tables**: create tables, track status (free / occupied / reserved)
-- **Orders**: place an order for a table (multiple items + quantities), track status
-  through pending → preparing → ready → served → closed. Opening an order
-  auto-occupies the table; closing it auto-frees the table.
+## What it does
+- **Floor**: tables with one-click status (Free / Occupied / Reserved), live counts, admins can add and remove tables
+- **Menu board**: colour-coded categories with a colour key, filter by category, "sold out" toggle
+- **Ticket rail**: a kitchen-board style workflow (New > Cooking > Ready to serve > Awaiting bill) with
+  ticket ages that turn amber then red, per-dish kitchen notes, auto-refresh, and a tap-to-add order composer
+- **Team**: admins create staff and kitchen accounts (nobody can self-register as admin)
+
+## Who can do what
+
+| | Admin | Staff | Kitchen |
+|---|---|---|---|
+| Tabs | Floor, Menu, Ticket rail, Team | Floor, Menu, Ticket rail | Ticket rail, Menu |
+| Add / remove tables | yes | no | no |
+| Set table status | yes | yes | no |
+| Add / remove menu items | yes | no | no |
+| Mark dish sold out | yes | no | yes |
+| Create tickets | yes | yes | no |
+| Start cooking / mark ready | yes | no | yes |
+| Mark served / close bill | yes | yes | no |
+| Cancel ticket | any open ticket | new tickets only | no |
+| See prices | yes | yes | no |
+| Manage team | yes | no | no |
+
+These rules are enforced in the API (`app/core/deps.py`, `app/services/order_service.py`), not just hidden in the UI.
 
 ## Run the backend
-
 ```
 cd backend
 python -m venv venv
@@ -20,51 +36,28 @@ pip install -r requirements.txt
 cp .env.example .env
 uvicorn app.main:app --reload
 ```
+API: http://127.0.0.1:8000, docs at /docs.
 
-Backend runs at `http://127.0.0.1:8000`. Interactive API docs: `http://127.0.0.1:8000/docs`
+**Upgrading from an older version?** The database layout changed. Delete `backend/restaurant.db` once and restart
+(this is a dev database; migrations with Alembic are a good next step).
 
 ## Run the frontend
-
 ```
 cd frontend
 npm install
 npm run dev
 ```
+Open http://127.0.0.1:5173. On first launch you'll be asked to create the admin account; add staff and kitchen
+accounts from the Team tab.
 
-Frontend runs at `http://127.0.0.1:5173`. Open it, register an **admin** account
-first (needed to create menu items and tables), then log in.
-
-## Typical flow to try it out
-
-1. Register as `admin`, log in
-2. Go to **Tables** → add a table (e.g. number 1, capacity 4)
-3. Go to **Menu** → add a couple of items
-4. Go to **Orders** → place an order for the table with some items
-5. Watch the table flip to "occupied" automatically
-6. Advance the order through its statuses; when it hits "closed" the table frees up again
-
-## Project structure
-
+## Tests
 ```
-backend/
-  app/
-    models/      SQLAlchemy tables
-    schemas/      Pydantic request/response shapes
-    routers/      API endpoints
-    core/          auth/security helpers
-    main.py        app entrypoint
-frontend/
-  src/
-    api/           fetch wrapper for the backend
-    context/       auth state (JWT in localStorage)
-    pages/         Login, Tables, Menu, Orders
-    App.jsx
+cd backend
+pip install -r requirements-dev.txt
+pytest
 ```
+Covers first-time setup, every role boundary, the ticket lifecycle, table/menu soft-delete and auth.
 
-## What's next (not built yet)
-
-- Reservations (booking a table ahead of time)
-- Inventory tracking tied to menu items
-- Basic analytics dashboard (revenue, top items)
-- Swap SQLite → Postgres for deployment (`DATABASE_URL` in `.env`)
-- Deploy: backend to Render/Railway, frontend to Vercel
+## Design notes
+Palette: bistro green `#2E4034`, brass `#B8862F`, paper `#F6F1E3`. Type: Fraunces (headings), IBM Plex Mono (data).
+Category colours live in `frontend/src/lib/categories.js`; role rules in `frontend/src/lib/permissions.js`.

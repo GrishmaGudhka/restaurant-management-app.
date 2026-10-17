@@ -1,85 +1,73 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 
+function Seal({ size = 30, color = '#B8862F' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 34 34" fill="none">
+      <circle cx="17" cy="17" r="15.5" stroke={color} strokeWidth="1.3" />
+      <circle cx="17" cy="17" r="12" stroke={color} strokeWidth="0.6" opacity="0.55" />
+      <text x="17" y="22.5" textAnchor="middle" fontFamily="Fraunces, serif" fontSize="14" fill={color}>CT</text>
+    </svg>
+  )
+}
+
 export default function Login() {
   const { login } = useAuth()
-  const [mode, setMode] = useState('login') // 'login' | 'register'
+  const [needsSetup, setNeedsSetup] = useState(null) // null = still checking
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState('admin')
   const [error, setError] = useState('')
-  const [info, setInfo] = useState('')
 
-  const handleLogin = async (e) => {
+  useEffect(() => {
+    api.setupStatus().then((s) => setNeedsSetup(s.needs_setup)).catch((e) => { setError(e.message); setNeedsSetup(false) })
+  }, [])
+
+  const submit = async (e) => {
     e.preventDefault()
     setError('')
     try {
-      const data = await api.login(username, password)
-      login(data.access_token, username)
-    } catch (err) {
-      setError(err.message)
-    }
-  }
-
-  const handleRegister = async (e) => {
-    e.preventDefault()
-    setError('')
-    setInfo('')
-    try {
-      await api.register(username, password, role)
-      setInfo('Account created — you can log in now.')
-      setMode('login')
+      login(needsSetup ? await api.setup(username, password) : await api.login(username, password))
     } catch (err) {
       setError(err.message)
     }
   }
 
   return (
-    <div className="card" style={{ maxWidth: 360, margin: '60px auto' }}>
-      <h2>{mode === 'login' ? 'Log in' : 'Create account'}</h2>
-      {error && <div className="error">{error}</div>}
-      {info && <div style={{ color: '#155724' }}>{info}</div>}
+    <div className="login-screen">
+      <svg className="login-watermark" viewBox="0 0 34 34" fill="none">
+        <circle cx="17" cy="17" r="15.5" stroke="#D9A94A" strokeWidth="0.4" />
+        <circle cx="17" cy="17" r="12" stroke="#D9A94A" strokeWidth="0.2" />
+        <text x="17" y="22.5" textAnchor="middle" fontFamily="Fraunces, serif" fontSize="14" fill="#D9A94A">CT</text>
+      </svg>
 
-      <form onSubmit={mode === 'login' ? handleLogin : handleRegister}>
-        <div>
-          <input
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
+      <div className="chit login-card" style={{ width: 340 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+          <Seal />
+          <h1 style={{ fontSize: 22 }}>The Corner Table</h1>
         </div>
-        <div>
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        {mode === 'register' && (
-          <div>
-            <select value={role} onChange={(e) => setRole(e.target.value)}>
-              <option value="admin">Admin</option>
-              <option value="staff">Staff</option>
-              <option value="kitchen">Kitchen</option>
-            </select>
-          </div>
-        )}
-        <button className="primary" type="submit">
-          {mode === 'login' ? 'Log in' : 'Register'}
-        </button>
-      </form>
+        <p style={{ fontSize: 12, color: 'var(--ink-soft)', marginTop: 0, marginBottom: 18 }}>
+          {needsSetup ? 'first-time setup: create the admin account' : 'back of house'}
+        </p>
 
-      <p style={{ marginTop: 12 }}>
-        {mode === 'login' ? (
-          <>No account? <a href="#" onClick={() => setMode('register')}>Register</a></>
-        ) : (
-          <>Already have an account? <a href="#" onClick={() => setMode('login')}>Log in</a></>
+        {error && <div className="error">{error}</div>}
+
+        {needsSetup !== null && (
+          <form onSubmit={submit}>
+            <input placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} style={{ width: '100%' }} minLength={3} required />
+            <input type="password" placeholder="Password (6+ characters)" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: '100%' }} minLength={6} required />
+            <button className="stamp" type="submit" style={{ width: '100%', marginTop: 6 }}>
+              {needsSetup ? 'Create admin account' : 'Log in'}
+            </button>
+          </form>
         )}
-      </p>
+
+        <p style={{ marginTop: 14, fontSize: 12, color: 'var(--ink-soft)' }}>
+          {needsSetup
+            ? 'Staff and kitchen accounts are added later from the Team tab.'
+            : 'No account? Ask your admin to add you.'}
+        </p>
+      </div>
     </div>
   )
 }

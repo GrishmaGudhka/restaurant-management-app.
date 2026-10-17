@@ -1,24 +1,20 @@
-from pydantic import BaseModel
-
+from pydantic import BaseModel, ConfigDict, Field
 from app.models.table import TableStatus
 
 
-class TableBase(BaseModel):
-    number: int
-    capacity: int
-    status: TableStatus = TableStatus.free
-
-
-class TableCreate(TableBase):
-    pass
+class TableCreate(BaseModel):
+    number: int = Field(ge=1, le=999)
+    capacity: int = Field(ge=1, le=50)
 
 
 class TableUpdateStatus(BaseModel):
     status: TableStatus
 
 
-class TableOut(TableBase):
+class TableOut(BaseModel):
     id: int
+    number: int
+    capacity: int
+    status: TableStatus
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

@@ -3,28 +3,26 @@ import { createContext, useContext, useState } from 'react'
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(localStorage.getItem('token'))
-  const [username, setUsername] = useState(localStorage.getItem('username'))
+  const [session, setSession] = useState({
+    token: localStorage.getItem('token'),
+    username: localStorage.getItem('username'),
+    role: localStorage.getItem('role'),
+  })
 
-  const login = (newToken, newUsername) => {
-    localStorage.setItem('token', newToken)
-    localStorage.setItem('username', newUsername)
-    setToken(newToken)
-    setUsername(newUsername)
+  const login = ({ access_token, username, role }) => {
+    localStorage.setItem('token', access_token)
+    localStorage.setItem('username', username)
+    localStorage.setItem('role', role)
+    setSession({ token: access_token, username, role })
   }
 
   const logout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('username')
-    setToken(null)
-    setUsername(null)
+    ;['token', 'username', 'role'].forEach((k) => localStorage.removeItem(k))
+    setSession({ token: null, username: null, role: null })
   }
 
-  return (
-    <AuthContext.Provider value={{ token, username, login, logout, isLoggedIn: !!token }}>
-      {children}
-    </AuthContext.Provider>
-  )
+  const isLoggedIn = !!session.token && !!session.role
+  return <AuthContext.Provider value={{ ...session, login, logout, isLoggedIn }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {

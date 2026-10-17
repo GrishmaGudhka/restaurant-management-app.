@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    database_url: str = "sqlite:///./restaurant.db"  # swap for Postgres when deploying
+    database_url: str = "sqlite:///./restaurant.db"
     secret_key: str = "change-this-to-something-random"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
