@@ -16,3 +16,4 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     role = Column(Enum(UserRole), default=UserRole.staff, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)  # deactivate instead of delete, so order history keeps its "server" name
+    pin = Column(String, nullable=True)  # 4-digit PIN for rapid staff profile switching

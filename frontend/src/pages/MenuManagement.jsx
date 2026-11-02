@@ -2,17 +2,26 @@ import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { can } from '../lib/permissions'
-import { CATEGORIES, OTHER, categoryColor, findCategory, groupByCategory } from '../lib/categories'
+import {
+  categoryColor,
+  findCategory,
+  getUniqueCategories,
+  groupByCategory,
+} from '../lib/categories'
 
 export default function MenuManagement() {
   const { role } = useAuth()
   const perms = can(role)
   const [items, setItems] = useState([])
   const [name, setName] = useState('')
-  const [category, setCategory] = useState(CATEGORIES[0].key)
+  const [selectedCat, setSelectedCat] = useState('Starters')
+  const [customCat, setCustomCat] = useState('')
   const [price, setPrice] = useState('')
   const [filter, setFilter] = useState(null) // null = show all
   const [error, setError] = useState('')
+
+  const isNewCategory = selectedCat === '__NEW__'
+  const activeCategory = isNewCategory ? customCat : selectedCat
 
   const load = () => api.getMenu().then(setItems).catch((e) => setError(e.message))
   useEffect(() => { load() }, [])
@@ -23,9 +32,15 @@ export default function MenuManagement() {
 
   const addItem = (e) => {
     e.preventDefault()
+    const finalCat = activeCategory.trim()
+    if (!finalCat) return
+
     run(async () => {
-      await api.createMenuItem({ name, category, price: parseFloat(price) })
-      setName(''); setPrice('')
+      await api.createMenuItem({ name, category: finalCat, price: parseFloat(price) })
+      setName('')
+      setPrice('')
+      setSelectedCat(finalCat)
+      setCustomCat('')
     })
   }
 
@@ -33,36 +48,94 @@ export default function MenuManagement() {
     if (window.confirm(`Remove "${item.name}" from the menu? Past orders are kept.`)) run(() => api.deleteMenuItem(item.id))
   }
 
+  // Get dynamic unique categories from presets + existing items
+  const uniqueCategories = getUniqueCategories(items)
+
   const countFor = (key) => items.filter((i) => findCategory(i.category).key === key).length
-  const legend = [...CATEGORIES, ...(countFor(OTHER.key) ? [OTHER] : [])]
-  const groups = groupByCategory(items).filter((g) => !filter || g.key === filter)
+  const groups = groupByCategory(items).filter((g) => !filter || g.key.toLowerCase() === filter.toLowerCase())
 
   return (
     <div>
       {error && <div className="error">{error}</div>}
 
+      {/* Category filter legend with dynamic colors */}
       <div className="legend" aria-label="Category colour key">
-        <button className={`legend-chip ${filter === null ? 'on' : ''}`} onClick={() => setFilter(null)}>All <span className="ct">{items.length}</span></button>
-        {legend.map((c) => (
-          <button key={c.key} className={`legend-chip ${filter === c.key ? 'on' : ''}`} style={{ '--c': c.color }}
-            onClick={() => setFilter(filter === c.key ? null : c.key)}>
-            <span className="sw" />{c.key} <span className="ct">{countFor(c.key)}</span>
-          </button>
-        ))}
+        <button className={`legend-chip ${filter === null ? 'on' : ''}`} onClick={() => setFilter(null)}>
+          All <span className="ct">{items.length}</span>
+        </button>
+        {uniqueCategories.map((c) => {
+          const itemCnt = countFor(c.key)
+          if (itemCnt === 0 && !['Starters', 'Mains', 'Breads', 'Desserts', 'Drinks', 'Sides'].includes(c.key)) {
+            return null // hide custom categories with 0 items
+          }
+          return (
+            <button
+              key={c.key}
+              className={`legend-chip ${filter === c.key ? 'on' : ''}`}
+              style={{ '--c': c.color }}
+              onClick={() => setFilter(filter === c.key ? null : c.key)}
+            >
+              <span className="sw" />
+              {c.key} <span className="ct">{itemCnt}</span>
+            </button>
+          )
+        })}
       </div>
 
       {perms.manageMenu && (
         <div className="chit">
           <h3>Add to the board</h3>
           <form onSubmit={addItem} className="add-dish">
-            <input placeholder="Dish name" value={name} onChange={(e) => setName(e.target.value)} required />
-            <span className="cat-pick" style={{ '--c': categoryColor(category) }}>
+            <input
+              placeholder="Dish name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+
+            {/* Editable Category Dropdown & Custom Field */}
+            <span className="cat-pick" style={{ '--c': categoryColor(activeCategory || 'Other') }}>
               <span className="sw" />
-              <select value={category} onChange={(e) => setCategory(e.target.value)}>
-                {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.key}</option>)}
+              <select
+                value={selectedCat}
+                onChange={(e) => {
+                  setSelectedCat(e.target.value)
+                  if (e.target.value !== '__NEW__') setCustomCat('')
+                }}
+              >
+                {uniqueCategories.map((c) => (
+                  <option key={c.key} value={c.key}>{c.key}</option>
+                ))}
+                <option value="__NEW__">+ Add new category...</option>
               </select>
+
+              {isNewCategory && (
+                <input
+                  type="text"
+                  placeholder="New category name"
+                  value={customCat}
+                  onChange={(e) => setCustomCat(e.target.value)}
+                  required
+                  autoFocus
+                  style={{
+                    marginLeft: '6px',
+                    padding: '4px 6px',
+                    width: '130px',
+                  }}
+                />
+              )}
             </span>
-            <input placeholder="Price" type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} required style={{ width: 100 }} />
+
+            <input
+              placeholder="Price"
+              type="number"
+              step="0.01"
+              min="0"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              required
+              style={{ width: 100 }}
+            />
             <button className="stamp" type="submit">Chalk it up</button>
           </form>
         </div>

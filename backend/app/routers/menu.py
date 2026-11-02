@@ -21,6 +21,18 @@ def list_menu_items(db: Session = Depends(get_db), _user=Depends(get_current_use
     return db.query(MenuItem).filter(MenuItem.is_active.is_(True)).order_by(MenuItem.id).all()
 
 
+@router.get("/categories", response_model=list[str])
+def list_categories(db: Session = Depends(get_db), _user=Depends(get_current_user)):
+    """Returns a list of all distinct, non-empty active categories stored in the menu database."""
+    categories = (
+        db.query(MenuItem.category)
+        .filter(MenuItem.is_active.is_(True), MenuItem.category.isnot(None))
+        .distinct()
+        .all()
+    )
+    return [c[0] for c in categories if c[0] and c[0].strip()]
+
+
 @router.post("/", response_model=MenuItemOut, status_code=201)
 def create_menu_item(item: MenuItemCreate, db: Session = Depends(get_db), _admin=Depends(require_role(UserRole.admin))):
     db_item = MenuItem(**item.model_dump())

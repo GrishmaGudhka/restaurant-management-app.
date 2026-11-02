@@ -1,13 +1,13 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 from app.models.table import TableStatus
 
 
 class TableCreate(BaseModel):
-    number: int = Field(ge=1, le=999)
-    capacity: int = Field(ge=1, le=50)
+    number: int
+    capacity: int = 4
 
 
-class TableUpdateStatus(BaseModel):
+class TableStatusUpdate(BaseModel):
     status: TableStatus
 
 

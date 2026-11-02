@@ -26,7 +26,7 @@ async function request(path, options = {}) {
       // keep statusText
     }
     // expired or deactivated session: send the person back to the login screen
-    if (res.status === 401 && token && !path.startsWith('/auth/login')) {
+    if (res.status === 401 && token && !path.startsWith('/auth/login') && !path.startsWith('/auth/pin-login')) {
       clearSession()
       window.location.reload()
     }
@@ -38,24 +38,31 @@ async function request(path, options = {}) {
 const json = (method, body) => ({ method, body: JSON.stringify(body) })
 
 export const api = {
+  // Auth & User Management
   setupStatus: () => request('/auth/setup-status'),
   setup: (username, password) => request('/auth/setup', json('POST', { username, password })),
   login: (username, password) => request('/auth/login', { method: 'POST', body: new URLSearchParams({ username, password }) }),
+  pinLogin: (pin) => request('/auth/pin-login', json('POST', { pin })),
 
   getUsers: () => request('/auth/users'),
   createUser: (user) => request('/auth/users', json('POST', user)),
   setUserActive: (id, is_active) => request(`/auth/users/${id}`, json('PATCH', { is_active })),
 
+  // Menu & Category Management
+  // getMenu retrieves all dishes along with their saved category strings
   getMenu: () => request('/menu/'),
+  // createMenuItem sends the newly typed category string along with item details
   createMenuItem: (item) => request('/menu/', json('POST', item)),
   deleteMenuItem: (id) => request(`/menu/${id}`, { method: 'DELETE' }),
   setAvailability: (id, is_available) => request(`/menu/${id}/availability`, json('PATCH', { is_available })),
 
+  // Tables
   getTables: () => request('/tables/'),
   createTable: (table) => request('/tables/', json('POST', table)),
   setTableStatus: (id, status) => request(`/tables/${id}/status`, json('PATCH', { status })),
   deleteTable: (id) => request(`/tables/${id}`, { method: 'DELETE' }),
 
+  // Orders
   getOrders: (scope) => request(`/orders/?scope=${scope}`),
   createOrder: (order) => request('/orders/', json('POST', order)),
   setOrderStatus: (id, status) => request(`/orders/${id}/status`, json('PATCH', { status })),

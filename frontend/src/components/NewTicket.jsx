@@ -8,6 +8,7 @@ export default function NewTicket({ tables, menu, onDone, onCancel }) {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
+  // Dynamically group menu items by custom or preset categories
   const groups = useMemo(() => groupByCategory(menu), [menu])
   const total = cart.reduce((sum, l) => sum + l.price * l.quantity, 0)
 
@@ -17,9 +18,16 @@ export default function NewTicket({ tables, menu, onDone, onCancel }) {
         ? c.map((l) => (l.id === m.id ? { ...l, quantity: Math.min(50, l.quantity + 1) } : l))
         : [...c, { id: m.id, name: m.name, price: m.price, category: m.category, quantity: 1, note: '' }]
     )
+
   const change = (id, delta) =>
-    setCart((c) => c.map((l) => (l.id === id ? { ...l, quantity: Math.min(50, l.quantity + delta) } : l)).filter((l) => l.quantity > 0))
-  const setNote = (id, note) => setCart((c) => c.map((l) => (l.id === id ? { ...l, note } : l)))
+    setCart((c) =>
+      c
+        .map((l) => (l.id === id ? { ...l, quantity: Math.min(50, l.quantity + delta) } : l))
+        .filter((l) => l.quantity > 0)
+    )
+
+  const setNote = (id, note) =>
+    setCart((c) => c.map((l) => (l.id === id ? { ...l, note } : l)))
 
   const send = async () => {
     setBusy(true)
@@ -43,20 +51,36 @@ export default function NewTicket({ tables, menu, onDone, onCancel }) {
         <h3>1. Pick the table</h3>
         <div className="table-picker">
           {tables.map((t) => (
-            <button key={t.id} type="button" className={`pick ${tableId === t.id ? 'on' : ''}`} onClick={() => setTableId(t.id)}>
+            <button
+              key={t.id}
+              type="button"
+              className={`pick ${tableId === t.id ? 'on' : ''}`}
+              onClick={() => setTableId(t.id)}
+            >
               <span className="dot" style={{ background: `var(--st-${t.status})` }} />T{t.number}
             </button>
           ))}
-          {tables.length === 0 && <span className="empty-note">No tables yet. An admin needs to add some on the Floor tab.</span>}
+          {tables.length === 0 && (
+            <span className="empty-note">No tables yet. An admin needs to add some on the Floor tab.</span>
+          )}
         </div>
 
         <h3>2. Tap dishes to add them</h3>
         {groups.map((g) => (
           <div key={g.key} className="dish-group">
-            <div className="dish-group-title" style={{ '--c': g.color }}><span className="sw" />{g.key}</div>
+            <div className="dish-group-title" style={{ '--c': g.color }}>
+              <span className="sw" />{g.key}
+            </div>
             <div className="dish-grid">
               {g.items.map((m) => (
-                <button key={m.id} type="button" className="dish" style={{ '--c': categoryColor(m.category) }} disabled={!m.is_available} onClick={() => add(m)}>
+                <button
+                  key={m.id}
+                  type="button"
+                  className="dish"
+                  style={{ '--c': categoryColor(m.category) }}
+                  disabled={!m.is_available}
+                  onClick={() => add(m)}
+                >
                   <span className="dn">{m.name}</span>
                   <span className="dp">{m.is_available ? `₹${m.price}` : 'Sold out'}</span>
                 </button>
@@ -73,22 +97,40 @@ export default function NewTicket({ tables, menu, onDone, onCancel }) {
         {cart.map((l) => (
           <div className="cart-line" key={l.id}>
             <div className="cart-top">
-              <span><span className="dot" style={{ '--c': categoryColor(l.category) }} />{l.name}</span>
+              <span>
+                <span className="dot" style={{ '--c': categoryColor(l.category) }} />
+                {l.name}
+              </span>
               <span className="qty">
                 <button type="button" onClick={() => change(l.id, -1)} aria-label={`One less ${l.name}`}>−</button>
                 <b>{l.quantity}</b>
                 <button type="button" onClick={() => change(l.id, 1)} aria-label={`One more ${l.name}`}>+</button>
               </span>
             </div>
-            <input className="note" placeholder="Note for the kitchen (e.g. no onion)" maxLength={200} value={l.note} onChange={(e) => setNote(l.id, e.target.value)} />
+            <input
+              className="note"
+              placeholder="Note for the kitchen (e.g. no onion)"
+              maxLength={200}
+              value={l.note}
+              onChange={(e) => setNote(l.id, e.target.value)}
+            />
           </div>
         ))}
-        <div className="cart-total"><span>Total</span><span>₹{total.toFixed(2)}</span></div>
+        <div className="cart-total">
+          <span>Total</span>
+          <span>₹{total.toFixed(2)}</span>
+        </div>
         {error && <div className="error">{error}</div>}
-        <button className="stamp" disabled={busy || !tableId || cart.length === 0} onClick={send}>
+        <button
+          className="stamp"
+          disabled={busy || !tableId || cart.length === 0}
+          onClick={send}
+        >
           {busy ? 'Sending…' : 'Send to kitchen'}
         </button>
-        <button className="void-link" type="button" onClick={onCancel}>Close without sending</button>
+        <button className="void-link" type="button" onClick={onCancel}>
+          Close without sending
+        </button>
       </div>
     </div>
   )

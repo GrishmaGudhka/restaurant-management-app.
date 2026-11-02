@@ -44,8 +44,20 @@ class Order(Base):
         return self.created_by.username if self.created_by else None
 
     @property
-    def total(self) -> float:
+    def subtotal(self) -> float:
         return sum(item.quantity * item.unit_price for item in self.items)
+
+    @property
+    def tax_rate(self) -> float:
+        return 5.0  # 5% GST default
+
+    @property
+    def tax_amount(self) -> float:
+        return round(self.subtotal * (self.tax_rate / 100.0), 2)
+
+    @property
+    def total(self) -> float:
+        return round(self.subtotal + self.tax_amount, 2)
 
 
 class OrderItem(Base):
@@ -56,6 +68,7 @@ class OrderItem(Base):
     quantity = Column(Integer, default=1, nullable=False)
     unit_price = Column(Float, nullable=False)  # price snapshot at order time
     note = Column(String, nullable=True)        # e.g. "no onion", "allergy: peanuts"
+    round = Column(Integer, default=1, nullable=False)  # ordering round (1, 2, 3...)
 
     order = relationship("Order", back_populates="items")
     menu_item = relationship("MenuItem")

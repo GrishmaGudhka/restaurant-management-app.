@@ -3,7 +3,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class MenuItemBase(BaseModel):
     name: str = Field(min_length=1, max_length=80)
-    category: str | None = Field(default=None, max_length=40)
+    category: str | None = Field(default=None, max_length=50)  # Dynamic category string (e.g., "Bread")
     price: float = Field(ge=0)
     is_available: bool = True
 

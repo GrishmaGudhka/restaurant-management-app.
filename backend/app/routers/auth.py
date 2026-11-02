@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User, UserRole
@@ -8,6 +9,10 @@ from app.core.security import hash_password, verify_password, create_access_toke
 from app.core.deps import get_current_user, require_role
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
+
+
+class PinLoginRequest(BaseModel):
+    pin: str = Field(..., min_length=4, max_length=6)
 
 
 def _token_for(user: User) -> Token:
@@ -40,6 +45,40 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         raise HTTPException(status_code=401, detail="Incorrect username or password")
     if not user.is_active:
         raise HTTPException(status_code=403, detail="This account has been deactivated")
+    return _token_for(user)
+
+
+@router.post("/pin-login", response_model=Token)
+def pin_login(payload: PinLoginRequest, db: Session = Depends(get_db)):
+    """Quick 4-digit PIN authentication for fast staff profile switching on shared floor terminals."""
+    active_users = db.query(User).filter(User.is_active == True).all()
+    user = None
+
+    for u in active_users:
+        user_pin = (
+            getattr(u, "pin", None)
+            or getattr(u, "pin_code", None)
+            or getattr(u, "hashed_pin", None)
+        )
+        if not user_pin:
+            continue
+
+        # Direct string check
+        if str(user_pin).strip() == str(payload.pin).strip():
+            user = u
+            break
+
+        # Fallback to hashed check if PIN is hashed with bcrypt
+        try:
+            if verify_password(payload.pin, str(user_pin)):
+                user = u
+                break
+        except Exception:
+            pass
+
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid PIN code")
+
     return _token_for(user)
 
 

@@ -7,14 +7,21 @@ export const TABS_BY_ROLE = {
   kitchen: ['orders', 'menu'],
 }
 
-export const can = (role) => ({
-  manageTables: role === 'admin',
-  setTableStatus: role === 'admin' || role === 'staff',
-  manageMenu: role === 'admin',
-  toggleAvailability: role === 'admin' || role === 'kitchen',
-  createOrder: role === 'admin' || role === 'staff',
-  seePrices: role === 'admin' || role === 'staff',
-})
+export const can = (role) => {
+  const r = (role || '').toLowerCase()
+
+  return {
+    manageTables: r === 'admin',
+    setTableStatus: r === 'admin' || r === 'staff',
+    manageMenu: r === 'admin',
+    manageUsers: r === 'admin',
+    toggleAvailability: r === 'admin' || r === 'kitchen',
+    createOrder: r === 'admin' || r === 'staff',
+    seePrices: r === 'admin' || r === 'staff',
+    advanceStatus: r === 'admin' || r === 'kitchen' || r === 'staff',
+    cancelOrder: r === 'admin' || r === 'staff',
+  }
+}
 
 // Ticket lifecycle: who can push a ticket to its next stage
 export const NEXT = {
@@ -23,7 +30,14 @@ export const NEXT = {
   ready: { to: 'served', label: 'Mark served', roles: ['staff', 'admin'] },
   served: { to: 'closed', label: 'Close bill', roles: ['staff', 'admin'] },
 }
-export const CANCEL = { pending: ['staff', 'admin'], preparing: ['admin'], ready: ['admin'], served: ['admin'] }
+
+export const CANCEL = {
+  pending: ['staff', 'admin'],
+  preparing: ['admin'],
+  ready: ['admin'],
+  served: ['admin'],
+}
+
 export const WAITING = {
   pending: 'Waiting for the kitchen',
   preparing: 'In the kitchen',

@@ -6,6 +6,7 @@ import MenuManagement from './pages/MenuManagement'
 import TableView from './pages/TableView'
 import Orders from './pages/Orders'
 import Team from './pages/Team'
+import PinPadModal from './components/PinPadModal'
 
 const PAGES = { floor: TableView, menu: MenuManagement, orders: Orders, team: Team }
 
@@ -21,6 +22,7 @@ function BrandMark() {
 
 function Dashboard() {
   const { username, role, logout } = useAuth()
+  const [showPinModal, setShowPinModal] = useState(false)
   const tabs = TABS_BY_ROLE[role] || []
   const [tab, setTab] = useState(tabs[0])
   const Page = PAGES[tab]
@@ -46,7 +48,10 @@ function Dashboard() {
 
         <div className="rail-footer">
           <span className="who">{username} <span className="role-tag">{role}</span></span>
-          <button onClick={logout}>Log out</button>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+            <button onClick={() => setShowPinModal(true)}>Switch PIN</button>
+            <button onClick={logout}>Log out</button>
+          </div>
         </div>
       </nav>
 
@@ -57,6 +62,8 @@ function Dashboard() {
         </div>
         {Page && <Page />}
       </main>
+
+      <PinPadModal isOpen={showPinModal} onClose={() => setShowPinModal(false)} />
     </div>
   )
 }
